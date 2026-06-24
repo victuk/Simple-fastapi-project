@@ -3,7 +3,7 @@ from sqlmodel import SQLModel, create_engine, Session
 
 
 # database_url = os.getenv("DATABASE_URL")
-database_url = "postgresql+psycopg2://server:courage@localhost:5432/crud_db"
+database_url = ""
 
 engine = create_engine(database_url, echo=True)
 
