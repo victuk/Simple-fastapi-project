@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from database import get_session
 from sqlmodel import Session, select, update
+from sqlalchemy.orm import joinedload
 from model.users import User
+from model.profiles import Profile
 from service.user import register_user_service, update_user_service, login_user
 
 user_route = APIRouter(
@@ -16,7 +18,8 @@ class LoginDetails(BaseModel):
 
 class RegistrationDetails(LoginDetails):
     full_name: str
-    
+    username: str
+    address: str
 
 
 @user_route.get("/")
@@ -25,7 +28,7 @@ def user_list(session: Session = Depends(get_session)):
     users = session.exec(v).all()
     return users
 
-@user_route.get("{id}")
+@user_route.get("/{id}")
 def user_by_position(id: str, session: Session = Depends(get_session)):
     user = session.get(User, id)
     
