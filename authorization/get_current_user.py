@@ -12,24 +12,27 @@ load_dotenv()
 sec_scheme = HTTPBearer()
 
 def get_current_user(value: HTTPAuthorizationCredentials = Depends(sec_scheme)):
-    
-    token = value.credentials
-    scheme = value.scheme
-    
-    if scheme.lower() != "bearer":
-        raise HTTPException(status_code=400, detail="Invalid scheme")
-    
-    if token == None:
-        raise HTTPException(status_code=404, detail="No token found")
-    
-    secret = os.getenv("AUTH_TOKEN")
-    
-    payload = jwt.decode(token, secret, algorithms="HS256")
-    
-    if secret == None or payload == None:
-        raise HTTPException(status_code=500, detail="Invalid token or missing secret")
-    
-    return payload
+    try:
+        token = value.credentials
+        scheme = value.scheme
+        
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=400, detail="Invalid scheme")
+        
+        if token == None:
+            raise HTTPException(status_code=404, detail="No token found")
+        
+        secret = os.getenv("AUTH_TOKEN")
+        
+        payload = jwt.decode(token, secret, algorithms="HS256")
+        
+        if secret == None or payload == None:
+            raise HTTPException(status_code=500, detail="Invalid token or missing secret")
+        
+        return payload
+    except Exception as err:
+        print(f"An error occurred, {err}")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 class Role(RegistrationDetails):

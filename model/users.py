@@ -1,6 +1,6 @@
 
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional
+from typing import Optional, List
 
 class User(SQLModel, table=True):
     
@@ -9,4 +9,5 @@ class User(SQLModel, table=True):
     full_name: str
     email: str
     password: str
-    profile: Optional["Profile"] = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
+    profile: Optional["Profile"] = Relationship(back_populates="user")
+    orders: List["Order"] = Relationship(back_populates="user")
