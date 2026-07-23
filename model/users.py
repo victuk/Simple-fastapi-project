@@ -9,5 +9,6 @@ class User(SQLModel, table=True):
     full_name: str
     email: str
     password: str
+    email_verified: Optional[bool] = False
     profile: Optional["Profile"] = Relationship(back_populates="user")
     orders: List["Order"] = Relationship(back_populates="user")

@@ -5,7 +5,12 @@ from sqlmodel import Session, select, update
 from sqlalchemy.orm import joinedload
 from model.users import User
 from model.profiles import Profile
-from service.user import register_user_service, update_user_service, login_user, rotate_token
+from service.user import (
+    register_user_service,
+    update_user_service,
+    login_user, rotate_token,
+    verify_email
+    )
 
 user_route = APIRouter(
     prefix="/users",
@@ -25,6 +30,10 @@ class RegistrationDetails(LoginDetails):
     address: str
 
 
+class OTPDTO(BaseModel):
+    otp: str
+
+
 @user_route.get("/")
 def user_list(session: Session = Depends(get_session)):
     v = select(User)
@@ -41,8 +50,12 @@ def user_by_position(id: str, session: Session = Depends(get_session)):
     return user
 
 @user_route.post("/register")
-def register_user(reg_details: RegistrationDetails, session: Session = Depends(get_session)):
-    return register_user_service(reg_details, session)
+async def register_user(reg_details: RegistrationDetails, session: Session = Depends(get_session)):
+    return await register_user_service(reg_details, session)
+
+@user_route.put("/verify-email/{token}")
+async def verify_email_controller(otp: OTPDTO, token: str, session: Session = Depends(get_session)):
+    return await verify_email(token, otp.otp, session)
 
 @user_route.post("/login")
 async def login(login_details: LoginDetails, session: Session = Depends(get_session)):

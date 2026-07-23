@@ -11,6 +11,9 @@ from pydantic import BaseModel
 from service.mail import send_email
 from datetime import datetime, timedelta, timezone
 from model.user_sessions import UserSession
+from model.verify_email import VerifyEmail
+import uuid
+import random
 
 load_dotenv()
 
@@ -30,7 +33,7 @@ def compare_password(plain_password: str, hashed_password: str):
     return do_passwords_match
 
 
-def register_user_service(user, session):
+async def register_user_service(user, session):
     v = user.model_dump()
 
     new_profile = Profile()
@@ -45,14 +48,70 @@ def register_user_service(user, session):
     new_user.email = v["email"]
     new_user.password = hashed_password
     new_user.profile = new_profile
+    print("Email =======================", v["email"])
     
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
     
+    verify_email_token = uuid.uuid4()
+    
+    otp = random.randint(100000, 999999)
+    
+    verify_email_details = VerifyEmail()
+    verify_email_details.user_id = new_user.id
+    verify_email_details.token = verify_email_token
+    verify_email_details.otp = str(otp)
+    
+    session.add(verify_email_details)
+    session.commit()
+    session.refresh(verify_email_details)
+    
+    
+    await send_email(emailDetails={
+            "email": [v["email"]],
+            "subject": "Verify Email Address",
+            "body": f" \
+                Click the link to verify your email: http://localhost:8000/users/verify-email/{verify_email_token} \n \
+                Your OTP is {otp}    \
+            ",
+        })
+    
     return new_user
 
 
+async def verify_email(token: str, otp: str, session: Session):
+    query = select(VerifyEmail).where(VerifyEmail.token == token)
+    result = session.exec(query).first()
+    
+    if result is None:
+        raise HTTPException(detail="OTP record not found", status_code=404)
+    
+    if result.otp != otp:
+        raise HTTPException(status_code=400, detail="Invalid otp")
+    
+    user_query = select(User).where(User.id == result.user_id)
+    user_result = session.exec(user_query).first()
+    
+    if user_result is None:
+            raise HTTPException(detail="User not found", status_code=404)
+    
+    user_result.email_verified = True
+    
+    session.add(user_result)
+    session.commit()
+    session.refresh(user_result)
+    
+    await send_email(emailDetails={
+                "email": [user_result.email],
+                "subject": "Email Verified Successfully",
+                "body": f" \
+                    You email has been verified, yaaaay!!!    \
+                ",
+            })
+    
+    return "User verified successfully"
+    
 
 
 async def login_user(user, session: Session):
